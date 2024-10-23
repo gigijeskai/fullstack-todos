@@ -33,6 +33,24 @@ def create_todos():
         )
         
     return jsonify({"message": "Todo created successfully"}), 201
+
+@app.route("/update_todos/<int:todo_id>", methods=["PATCH"])
+def update_todos(todo_id):
+    todo = Todo.query.get(todo_id)
+    
+    if not todo:
+        return (
+            jsonify({"error": "Todo not found"}), 
+            404,
+        )
+        
+    data = request.json
+    todo.title = data.get("title", todo.title)
+    todo.done = data.get("done", todo.done)
+    
+    db.session.commit()
+
+    return jsonify({"message": "Todo updated successfully"}), 200
     
 if __name__ == "__main__":
     with app.app_context():
