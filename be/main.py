@@ -51,6 +51,21 @@ def update_todos(todo_id):
     db.session.commit()
 
     return jsonify({"message": "Todo updated successfully"}), 200
+
+@app.route("/delete_todos/<int:todo_id>", methods=["DELETE"])
+def delete_todos(todo_id):
+    todo = Todo.query.get(todo_id)
+    
+    if not todo:
+        return (
+            jsonify({"error": "Todo not found"}), 
+            404,
+        )
+        
+    db.session.delete(todo)
+    db.session.commit()
+    
+    return jsonify({"message": "Todo deleted successfully"}), 200
     
 if __name__ == "__main__":
     with app.app_context():
