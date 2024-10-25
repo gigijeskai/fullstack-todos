@@ -10,9 +10,7 @@ def get_todos():
 
 @app.route("/create_todos", methods=["POST"])
 def create_todos():
-    print("Received request data:", request.json)  # Aggiungi questo log
     title = request.json.get("title")
-    print("Extracted title:", title)  # Aggiungi questo log
     done = False
     
     if not title:
@@ -29,10 +27,8 @@ def create_todos():
         db.session.add(new_todo)
         db.session.commit()
         result = new_todo.to_json()
-        print("Created todo:", result)  # Aggiungi questo log
         return jsonify(result), 201
     except Exception as e:
-        print("Error:", str(e))  # Aggiungi questo log
         return (
             jsonify({"error": str(e)}),
             400,
@@ -52,9 +48,11 @@ def update_todos(todo_id):
     todo.title = data.get("title", todo.title)
     todo.done = data.get("done", todo.done)
     
-    db.session.commit()
-
-    return jsonify({"message": "Todo updated successfully"}), 200
+    try:
+        db.session.commit()
+        return jsonify(todo.to_json()), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route("/delete_todos/<int:todo_id>", methods=["DELETE"])
 def delete_todos(todo_id):

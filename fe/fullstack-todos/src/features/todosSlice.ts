@@ -31,9 +31,21 @@ export const createTodo = createAsyncThunk<Todo, string>(
     }
 );
 
-export const updateTodo = createAsyncThunk('todos/updateTodo', async ({ id, title, done }: { id: number, title: string, done: boolean }) => {
-    const response = await axios.patch(`${API_URL}/update_todos/${id}`, { title, done });
-    return response.data.message;
+export const updateTodo = createAsyncThunk
+<Todo,{ id: number, title: string, done: boolean }>
+('todos/updateTodo', async (todoData) => {
+    try {
+        const response = await axios.patch(
+            `${API_URL}/update_todos/${todoData.id}`,
+            { title: todoData.title, done: todoData.done }
+        );
+        return response.data;
+    } catch (error: any) {
+        if (error.response) {
+            throw new Error(error.response.data.error || 'Error updating todo');
+        }
+        throw error;
+    }
 });
 
 export const deleteTodo = createAsyncThunk<number, number>('todos/deleteTodo', async (id: number) => {

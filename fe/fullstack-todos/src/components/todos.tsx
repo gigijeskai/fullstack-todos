@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchTodos, createTodo, deleteTodo } from "../features/todosSlice";
+import { fetchTodos, createTodo, deleteTodo, updateTodo } from "../features/todosSlice";
 import { RootState } from "../store/store";
 import { useAppDispatch, useAppSelector } from "../hooks/hooks";
+import { Todo } from "../types/todo";
 
 export const Todos: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -29,6 +30,19 @@ export const Todos: React.FC = () => {
     }
 };
 
+const handleToggleTodo = async (todo: Todo) => {
+    try {
+        await dispatch(updateTodo({
+            id: todo.id,
+            title: todo.title,
+            done: !todo.done
+        })).unwrap();
+        void dispatch(fetchTodos());
+    } catch (err: any) {
+        console.error('Failed to toggle todo:', err);
+    }
+}
+
   const handleDeleteTodo = async (id: number) => {
     try {
       await dispatch(deleteTodo(id)).unwrap();
@@ -51,7 +65,13 @@ export const Todos: React.FC = () => {
       <button onClick={handleCreateTodo}>Add Todo</button>
       {todos.map((todo) => (
         <div key={todo.id}>
+            <input
+            type="checkbox"
+            checked={todo.done}
+            onChange={() => handleToggleTodo(todo)}
+            />
           <span>{todo.title}</span>
+          <button onClick={() => handleDeleteTodo(todo.id)}>edit</button>
           <button onClick={() => handleDeleteTodo(todo.id)}>Delete</button>
         </div>
       ))}

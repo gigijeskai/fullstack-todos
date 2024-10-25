@@ -5,7 +5,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
-        "origins": ["http://localhost:3000"],  # Sostituisci con l'URL del tuo frontend
+        "origins": ["http://localhost:3000"],
         "methods": ["GET", "POST", "PATCH", "DELETE"],
         "allow_headers": ["Content-Type"]
     }
