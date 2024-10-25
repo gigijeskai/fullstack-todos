@@ -43,6 +43,22 @@ const handleToggleTodo = async (todo: Todo) => {
     }
 }
 
+const handleEditTodo = async (todo: Todo) => {
+    try {
+        const newTitle = prompt('Enter new title:', todo.title);
+        if (newTitle) {
+            await dispatch(updateTodo({
+                id: todo.id,
+                title: newTitle,
+                done: todo.done
+            })).unwrap();
+            void dispatch(fetchTodos());
+        } 
+    }catch (err: any) {
+            console.error('Failed to edit todo:', err);
+        }
+    }
+
   const handleDeleteTodo = async (id: number) => {
     try {
       await dispatch(deleteTodo(id)).unwrap();
@@ -71,7 +87,7 @@ const handleToggleTodo = async (todo: Todo) => {
             onChange={() => handleToggleTodo(todo)}
             />
           <span>{todo.title}</span>
-          <button onClick={() => handleDeleteTodo(todo.id)}>edit</button>
+          <button onClick={() => handleEditTodo(todo)}>edit</button>
           <button onClick={() => handleDeleteTodo(todo.id)}>Delete</button>
         </div>
       ))}
