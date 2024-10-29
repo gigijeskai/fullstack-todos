@@ -1,12 +1,24 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import {Todos} from './components/todos';
-
+import { Login } from './components/login';
+import { AuthGuard } from './components/AuthGuard';
 
 function App() {
   return (
-    <div className="App">
-      < Todos />
-    </div>
+      <BrowserRouter>
+          <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route
+                  path="/"
+                  element={
+                      <AuthGuard>
+                          <Todos />
+                      </AuthGuard>
+                  }
+              />
+          </Routes>
+      </BrowserRouter>
   );
 }
 
