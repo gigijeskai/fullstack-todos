@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useEffect } from "react";
 import { fetchTodos, createTodo, deleteTodo, updateTodo } from "../features/todosSlice";
-import { RootState } from "../store/store";
 import { useAppDispatch, useAppSelector } from "../hooks/hooks";
 import { Todo } from "../types/todo";
 
@@ -10,12 +8,13 @@ export const Todos: React.FC = () => {
   const todos = useAppSelector((state) => state.todos.todos);
   const status = useAppSelector((state) => state.todos.status);
   const error = useAppSelector((state) => state.todos.error);
+  const  token  = useAppSelector((state) => state.auth);
 
   useEffect(() => {
-    if (status === "idle") {
-      void dispatch(fetchTodos());
+    if (token) {
+     dispatch(fetchTodos());
     }
-  }, [dispatch, status]);
+  }, [dispatch, token]);
 
   const handleCreateTodo = async () => {
     const newTitle = prompt('Enter new TODO title:');

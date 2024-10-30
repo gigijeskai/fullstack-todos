@@ -1,26 +1,91 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import {Todos} from './components/todos';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from './store/store';
 import { Login } from './components/login';
-import { AuthGuard } from './components/AuthGuard';
 import { Register } from './components/register';
+import { Todos } from './components/todos';
+
+// Protected Route Component
+interface PrivateRouteProps {
+  children: React.ReactElement;
+}
+
+const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+  
+  return children;
+};
+
+// Public Route Component (redirects to /todos if already authenticated)
+interface PublicRouteProps {
+  children: React.ReactElement;
+}
+
+const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  
+  if (isAuthenticated) {
+    return <Navigate to="/todos" />;
+  }
+  
+  return children;
+};
 
 function App() {
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+
   return (
-      <BrowserRouter>
-          <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route
-                  path="/register"
-                  element={
-                      <AuthGuard>
-                          <Todos />
-                      </AuthGuard>
-                  }
-              />
-          </Routes>
-      </BrowserRouter>
+    <Router>
+      <div className="App">
+        <Routes>
+          {/* Public Routes */}
+          <Route 
+            path="/login" 
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            } 
+          />
+          <Route 
+            path="/register" 
+            element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            } 
+          />
+
+          {/* Protected Routes */}
+          <Route 
+            path="/todos" 
+            element={
+              <PrivateRoute>
+                <Todos />
+              </PrivateRoute>
+            } 
+          />
+
+          {/* Root Route - Redirect based on auth status */}
+          <Route 
+            path="/" 
+            element={
+              isAuthenticated ? <Navigate to="/todos" /> : <Navigate to="/login" />
+            } 
+          />
+
+          {/* Catch all route - Redirect to root */}
+          <Route 
+            path="*" 
+            element={<Navigate to="/" />} 
+          />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

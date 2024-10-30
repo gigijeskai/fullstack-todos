@@ -9,14 +9,19 @@ import jwt
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
+        token = None
+        auth_header = request.headers.get('Authorization')
+        
+        if auth_header:
+            try:
+                token = auth_header.split(" ")[1]
+            except IndexError:
+                return jsonify({'message': 'Invalid token format'}), 401
         
         if not token:
             return jsonify({'message': 'Token is missing'}), 401
         
         try:
-            # Remove bearer from token
-            token = token.split(' ')[1]
             data = jwt.decode(token, 'your-secret', algorithms=['HS256'])
             current_user = User.query.get(data['user_id'])
         except:
@@ -77,12 +82,19 @@ def login():
 
 # Routes for Todos
 
-@app.route("/todos", methods=["GET"])
+@app.route("/todos", methods=["GET", "OPTIONS"])
 @token_required
-def get_todos():
-    todos = Todo.query.all()
-    json_todos = list(map(lambda todo: todo.to_json(), todos))
-    return jsonify({"todos": json_todos}), 200
+def get_todos(current_user):
+    try:
+        todos = Todo.query.filter_by(user_id=current_user.id).all()
+        return jsonify([{
+            'id': todo.id,
+            'title': todo.title,
+            'completed': todo.completed
+        } for todo in todos])
+    except Exception as e:
+        print(f"Error: {str(e)}")  # For debugging
+        return jsonify({'message': 'Error fetching todos'}), 500
 
 @app.route("/create_todos", methods=["POST"])
 @token_required

@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { Todo, TodosState } from '../types/todo';
-import axios from 'axios';
+import axios from '../utils/axios'
 
 const API_URL = 'http://localhost:5000';
 
@@ -10,10 +10,18 @@ const initialState: TodosState = {
     error: null
   };
 
-export const fetchTodos = createAsyncThunk<Todo[]>('todos/fetchTodos', async () => {
-  const response = await axios.get(`${API_URL}/todos`);
-  return response.data.todos;
-});
+  export const fetchTodos = createAsyncThunk(
+    'todos/fetchTodos',
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await axios.get('/todos');
+            return response.data;
+        } catch (error: any) {
+            console.error('Error fetching todos:', error);
+            return rejectWithValue(error.response?.data?.message || 'Failed to fetch todos');
+        }
+    }
+);
 
 export const createTodo = createAsyncThunk<Todo, string>(
     'todos/createTodo',
@@ -60,14 +68,17 @@ const todoSlice = createSlice({
         // Gestione di fetchTodos
         builder.addCase(fetchTodos.pending, (state) => {
             state.status = 'loading';
+            state.error = null;
         });
         builder.addCase(fetchTodos.fulfilled, (state, action) => {
             state.status = 'succeeded';
             state.todos = action.payload;
+            state.error = null;
         });
         builder.addCase(fetchTodos.rejected, (state, action) => {
             state.status = 'failed';
             state.error = action.error.message || 'Failed to fetch todos';
+            state.error = null;
         });
 
         // Gestione di createTodo

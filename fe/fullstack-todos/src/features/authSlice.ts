@@ -12,7 +12,8 @@ const loadAuthState = (): AuthState => {
         token: token,
         user: user ? JSON.parse(user) : null,
         status: 'idle',
-        error: null
+        error: null,
+        isAuthenticated: false,
     };
 };
 
@@ -65,6 +66,7 @@ const loadAuthState = (): AuthState => {
                 state.status = 'succeeded';
                 state.user = action.payload.user;
                 state.token = action.payload.token;
+                state.isAuthenticated = true;
             })
             .addCase(login.rejected, (state, action) => {
                 state.status = 'failed';
@@ -81,6 +83,7 @@ const loadAuthState = (): AuthState => {
                 state.status = 'succeeded';
                 state.user = action.payload.user;
                 state.token = action.payload.token;
+                state.isAuthenticated = true;
             })
             .addCase(register.rejected, (state, action) => {
                 state.status = 'failed';
@@ -93,6 +96,7 @@ const loadAuthState = (): AuthState => {
                 state.user = null;
                 state.token = null;
                 state.status = 'idle';
+                state.isAuthenticated = false;
             });
 
         }
