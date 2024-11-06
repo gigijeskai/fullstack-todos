@@ -4,6 +4,7 @@ import { RootState } from './store/store';
 import { Login } from './components/login';
 import { Register } from './components/register';
 import { Todos } from './components/todos';
+import Navbar from './components/navbar';
 
 // Protected Route Component
 interface PrivateRouteProps {
@@ -41,6 +42,10 @@ function App() {
   return (
     <Router>
       <div className="App">
+        <header>
+          <h1>Fullstack Todos</h1>
+        </header>
+        <Navbar />
         <Routes>
           {/* Public Routes */}
           <Route 
