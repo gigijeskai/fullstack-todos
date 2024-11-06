@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { fetchTodos, createTodo, deleteTodo, updateTodo } from "../features/todosSlice";
 import { useAppDispatch, useAppSelector } from "../hooks/hooks";
 import { Todo } from "../types/todo";
+import api from "../utils/axios";
 
 export const Todos: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -20,11 +21,11 @@ export const Todos: React.FC = () => {
     const newTitle = prompt('Enter new TODO title:');
     if (newTitle) {
         try {
-            const result = await dispatch(createTodo(newTitle)).unwrap();
-            console.log('Todo created successfully:', result);
+            await api.post('/create_todos', { title: newTitle });
+            void dispatch(fetchTodos());
         } catch (err: any) {
             console.error('Failed to create todo:', err);
-            alert(`Error creating todo: ${err.message}`);
+            alert('Failed to create todo');
         }
     }
 };

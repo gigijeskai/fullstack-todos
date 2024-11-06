@@ -9,26 +9,29 @@ import jwt
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        if request.method == "OPTIONS":
+            return jsonify({}), 200
+
         token = None
         auth_header = request.headers.get('Authorization')
-        
+
         if auth_header:
             try:
                 token = auth_header.split(" ")[1]
             except IndexError:
                 return jsonify({'message': 'Invalid token format'}), 401
-        
+
         if not token:
             return jsonify({'message': 'Token is missing'}), 401
-        
+
         try:
             data = jwt.decode(token, 'your-secret', algorithms=['HS256'])
             current_user = User.query.get(data['user_id'])
         except:
             return jsonify({'message': 'Token is invalid'}), 401
-        
+
         return f(current_user, *args, **kwargs)
-    
+
     return decorated
 
 @app.route("/auth/register", methods=["POST"])
@@ -90,7 +93,7 @@ def get_todos(current_user):
         return jsonify([{
             'id': todo.id,
             'title': todo.title,
-            'completed': todo.completed
+            'done': todo.done
         } for todo in todos])
     except Exception as e:
         print(f"Error: {str(e)}")  # For debugging
@@ -98,19 +101,16 @@ def get_todos(current_user):
 
 @app.route("/create_todos", methods=["POST"])
 @token_required
-def create_todos():
-    title = request.json.get("title")
-    done = False
-    
-    if not title:
-        return (
-            jsonify({"error": "Invalid input"}), 
-            400,
-        )
-        
+def create_todos(current_user):
+    data = request.get_json()
+    if not data or not data.get("title"):
+        return jsonify({"error": "Invalid input"}), 400
+
+    title = data["title"]
     new_todo = Todo(
         title=title,
-        done=done
+        done=False,
+        user_id=current_user.id
     )
     try:
         db.session.add(new_todo)
@@ -118,10 +118,7 @@ def create_todos():
         result = new_todo.to_json()
         return jsonify(result), 201
     except Exception as e:
-        return (
-            jsonify({"error": str(e)}),
-            400,
-        )
+        return jsonify({"error": str(e)}), 400
         
 @app.route("/update_todos/<int:todo_id>", methods=["PATCH"])
 @token_required
@@ -161,7 +158,6 @@ def delete_todos(todo_id):
     return jsonify({"message": "Todo deleted successfully"}), 200
     
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-    
     app.run(debug=True)
+    
+    
