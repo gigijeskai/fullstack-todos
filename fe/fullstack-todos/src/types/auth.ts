@@ -1,7 +1,13 @@
 export interface User {
     id: number;
-    username: string;
+    email: string;
 }
+
+export interface UsersState {
+    users: User[];
+    status: "idle" | "loading" | "succeeded" | "failed";
+    error: string | null;
+  }
 
 export interface AuthState {
     user: User | null;

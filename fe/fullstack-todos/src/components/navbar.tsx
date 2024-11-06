@@ -26,6 +26,9 @@ export const Navbar: React.FC = () => {
                     <Link to="/todos" >Todos</Link>
                 </li>
                 <li>
+                    <Link to="/users" >Users</Link>
+                </li>
+                <li>
                     <Link to="/logout" >Logout</Link>
                 </li>
                 </>
