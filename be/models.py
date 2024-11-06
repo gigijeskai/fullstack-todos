@@ -21,6 +21,12 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(100), nullable=False)
     
+    def to_json(self):
+        return {
+            'id': self.id,
+            'email': self.email
+        }
+    
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
         

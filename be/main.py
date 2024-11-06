@@ -151,6 +151,34 @@ def delete_todos(current_user, todo_id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
     
+# Route for Users
+
+@app.route("/users", methods=["GET"])
+@token_required
+def get_users(current_user):
+    try:
+        users = User.query.all()
+        return jsonify([user.to_json() for user in users])
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
+@app.route("/delete_user/<int:user_id>", methods=["DELETE"])
+@token_required
+def delete_user(current_user, user_id):
+    try:
+        user = User.query.filter_by(id=user_id ).first()
+    
+        if not user:
+            return (jsonify({"error": "User not found"}), 404,
+        )
+        
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({"message": "User deleted successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
 if __name__ == "__main__":
     app.run(debug=True)
     
