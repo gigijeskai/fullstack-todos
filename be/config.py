@@ -10,7 +10,7 @@ CORS(app,
      resources={r"/*": {"origins": "http://localhost:3000"}},
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization"],
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"])
 
 # Your database configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///mydatabase.db"
