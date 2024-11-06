@@ -1,74 +1,78 @@
-import React, { useEffect } from "react";
-import { fetchTodos, createTodo, deleteTodo, updateTodo } from "../features/todosSlice";
+import React, { useEffect, useState } from "react";
+import { fetchTodos, createTodo, deleteTodo, updateTodo, clearError } from "../features/todosSlice";
 import { useAppDispatch, useAppSelector } from "../hooks/hooks";
 import { Todo } from "../types/todo";
-import api from "../utils/axios";
 
 export const Todos: React.FC = () => {
   const dispatch = useAppDispatch();
-  const todos = useAppSelector((state) => state.todos.todos);
-  const status = useAppSelector((state) => state.todos.status);
-  const error = useAppSelector((state) => state.todos.error);
+  const { todos, status, error } = useAppSelector((state) => state.todos);
   const  token  = useAppSelector((state) => state.auth);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (token) {
-     dispatch(fetchTodos());
+    void dispatch(fetchTodos());
     }
   }, [dispatch, token]);
+
+  useEffect(() => {
+    if (error) {
+      alert(error);
+      dispatch(clearError());
+    }
+  }, [error, dispatch]);
 
   const handleCreateTodo = async () => {
     const newTitle = prompt('Enter new TODO title:');
     if (newTitle) {
+        setIsLoading(true);
         try {
-            await api.post('/create_todos', { title: newTitle });
-            void dispatch(fetchTodos());
-        } catch (err: any) {
-            console.error('Failed to create todo:', err);
-            alert('Failed to create todo');
+            await dispatch(createTodo(newTitle)).unwrap();
+        } finally {
+            setIsLoading(false);
         }
     }
 };
 
 const handleToggleTodo = async (todo: Todo) => {
-    try {
-        await dispatch(updateTodo({
-            id: todo.id,
-            title: todo.title,
-            done: !todo.done
-        })).unwrap();
-        void dispatch(fetchTodos());
-    } catch (err: any) {
-        console.error('Failed to toggle todo:', err);
-    }
-}
+  setIsLoading(true);
+  try {
+      await dispatch(updateTodo({
+          id: todo.id,
+          title: todo.title,
+          done: !todo.done
+      })).unwrap();
+  } finally {
+      setIsLoading(false);
+  }
+};
 
 const handleEditTodo = async (todo: Todo) => {
-    try {
-        const newTitle = prompt('Enter new title:', todo.title);
-        if (newTitle) {
-            await dispatch(updateTodo({
-                id: todo.id,
-                title: newTitle,
-                done: todo.done
-            })).unwrap();
-            void dispatch(fetchTodos());
-        } 
-    }catch (err: any) {
-            console.error('Failed to edit todo:', err);
-        }
-    }
+  const newTitle = prompt('Enter new title:', todo.title);
+  if (newTitle) {
+      setIsLoading(true);
+      try {
+          await dispatch(updateTodo({
+              id: todo.id,
+              title: newTitle,
+              done: todo.done
+          })).unwrap();
+      }  finally {
+          setIsLoading(false);
+      }
+  }
+};
 
   const handleDeleteTodo = async (id: number) => {
+    setIsLoading(true);
     try {
       await dispatch(deleteTodo(id)).unwrap();
-      void dispatch(fetchTodos());
-    } catch (err) {
-      console.error("Failed to delete the todo: ", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (status === "loading") {
+  if (status === "loading" || isLoading) {
     return <div>Loading...</div>;
   }
 
@@ -78,17 +82,23 @@ const handleEditTodo = async (todo: Todo) => {
 
   return (
     <div>
-      <button onClick={handleCreateTodo}>Add Todo</button>
+      <button 
+      onClick={handleCreateTodo} 
+      disabled={isLoading}
+      >
+        Add Todo
+        </button>
       {todos.map((todo) => (
         <div key={todo.id}>
             <input
             type="checkbox"
             checked={todo.done}
             onChange={() => handleToggleTodo(todo)}
+            disabled={isLoading}
             />
           <span>{todo.title}</span>
-          <button onClick={() => handleEditTodo(todo)}>edit</button>
-          <button onClick={() => handleDeleteTodo(todo.id)}>Delete</button>
+          <button onClick={() => handleEditTodo(todo)} disabled={isLoading} >edit</button>
+          <button onClick={() => handleDeleteTodo(todo.id)} disabled={isLoading} >Delete</button>
         </div>
       ))}
     </div>

@@ -1,113 +1,124 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { Todo, TodosState } from '../types/todo';
-import axios from '../utils/axios'
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { Todo, TodosState } from "../types/todo";
+import axios from "../utils/axios";
+import { clear } from "console";
+import { stat } from "fs";
 
-const API_URL = 'http://localhost:5000';
-
-const initialState: TodosState = {
-    todos: [],
-    status: 'idle',
-    error: null
-  };
-
-  export const fetchTodos = createAsyncThunk(
-    'todos/fetchTodos',
-    async (_, { rejectWithValue }) => {
-        try {
-            const response = await axios.get('/todos');
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching todos:', error);
-            return rejectWithValue(error.response?.data?.message || 'Failed to fetch todos');
-        }
-    }
-);
-
-export const createTodo = createAsyncThunk<Todo, string>(
-    'todos/createTodo',
-    async (title: string) => {
-        try {
-            console.log('Sending request with title:', title);
-            const response = await axios.post(`${API_URL}/create_todos`, { title });
-            console.log('Received response:', response.data);
-            return response.data;
-        } catch (error: any) {
-            console.error('Error details:', error.response?.data);
-            throw error;
-        }
-    }
-);
-
-export const updateTodo = createAsyncThunk
-<Todo,{ id: number, title: string, done: boolean }>
-('todos/updateTodo', async (todoData) => {
+export const fetchTodos = createAsyncThunk(
+  "todos/fetchTodos",
+  async (_, { rejectWithValue }) => {
     try {
-        const response = await axios.patch(
-            `${API_URL}/update_todos/${todoData.id}`,
-            { title: todoData.title, done: todoData.done }
-        );
-        return response.data;
+      const response = await axios.get("/todos");
+      return response.data;
     } catch (error: any) {
-        if (error.response) {
-            throw new Error(error.response.data.error || 'Error updating todo');
-        }
-        throw error;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch todos"
+      );
     }
-});
+  }
+);
 
-export const deleteTodo = createAsyncThunk<number, number>('todos/deleteTodo', async (id: number) => {
-    const response = await axios.delete(`${API_URL}/delete_todos/${id}`);
-    return response.data.message;
-});
+export const createTodo = createAsyncThunk(
+  "todos/createTodo",
+  async (title: string, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(`/create_todos`, { title });
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to create todo"
+      );
+    }
+  }
+);
+
+export const updateTodo = createAsyncThunk(
+  "todos/updateTodo",
+  async (
+    { id, title, done }: { id: number; title: string; done: boolean },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await axios.patch(`/update_todos/${id}`, {
+        title,
+        done
+      });
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update todo"
+      );
+    }
+  }
+);
+
+export const deleteTodo = createAsyncThunk(
+  "todos/deleteTodo",
+  async (id: number, { rejectWithValue }) => {
+    try {
+      await axios.delete(`/delete_todos/${id}`);
+      return id;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete todo"
+      );
+    }
+  }
+);
 
 const todoSlice = createSlice({
-    name: 'todos',
-    initialState,
-    reducers: {},
-    extraReducers: (builder) => {
-        // Gestione di fetchTodos
-        builder.addCase(fetchTodos.pending, (state) => {
+  name: "todos",
+  initialState: {
+    todos: [],
+    status: "idle",
+    error: null,
+  } as TodosState,
+  reducers: {
+    clearError: (state) => {      
+      state.error = null;
+    }
+  },
+  extraReducers: (builder) => {
+    builder
+        .addCase(fetchTodos.pending, (state) => {
             state.status = 'loading';
             state.error = null;
-        });
-        builder.addCase(fetchTodos.fulfilled, (state, action) => {
+        })
+        .addCase(fetchTodos.fulfilled, (state, action) => {
             state.status = 'succeeded';
             state.todos = action.payload;
             state.error = null;
-        });
-        builder.addCase(fetchTodos.rejected, (state, action) => {
+        })
+        .addCase(fetchTodos.rejected, (state, action) => {
             state.status = 'failed';
-            state.error = action.error.message || 'Failed to fetch todos';
+            state.error = action.payload as string;
+        })
+        .addCase(createTodo.fulfilled, (state, action) => {
+            state.todos.push(action.payload);
             state.error = null;
-        });
-
-        // Gestione di createTodo
-        builder.addCase(createTodo.pending, (state) => {
-            state.status = 'loading';
-        });
-        builder.addCase(createTodo.fulfilled, (state, action) => {
-            state.status = 'succeeded';
-            state.todos.push(action.payload); // Aggiorna lo stato con il nuovo todo
-        });
-        builder.addCase(createTodo.rejected, (state, action) => {
-            state.status = 'failed';
-            state.error = action.error.message || 'Failed to create todo';
-            console.error('Create todo failed:', action.error);
-        });
-
-        // Gestione di updateTodo
-        builder.addCase(updateTodo.fulfilled, (state, action) => {
-            const index = state.todos.findIndex(todo => todo.id === action.meta.arg.id);
+        })
+        .addCase(createTodo.rejected, (state, action) => {
+            state.error = action.payload as string;
+        })
+        .addCase(updateTodo.fulfilled, (state, action) => {
+            const index = state.todos.findIndex(todo => todo.id === action.payload.id);
             if (index !== -1) {
-                state.todos[index] = { ...state.todos[index], ...action.meta.arg };
+                state.todos[index] = action.payload;
             }
+            state.error = null;
+        })
+        .addCase(updateTodo.rejected, (state, action) => {
+            state.error = action.payload as string;
+        })
+        .addCase(deleteTodo.fulfilled, (state, action) => {
+            state.todos = state.todos.filter(todo => todo.id !== action.payload);
+            state.error = null;
+        })
+        .addCase(deleteTodo.rejected, (state, action) => {
+            state.error = action.payload as string;
         });
-
-        // Gestione di deleteTodo
-        builder.addCase(deleteTodo.fulfilled, (state, action) => {
-            state.todos = state.todos.filter(todo => todo.id !== action.meta.arg);
-        });
-    }
+}
 });
 
+export const { clearError } = todoSlice.actions;
 export default todoSlice.reducer;
