@@ -1,23 +1,23 @@
-from flask import request, jsonify
-from config import app, db
-from models import Todo, User
-from functools import wraps
-import jwt
+from flask import request, jsonify # handle requests and responses json
+from config import app, db # app is the main flask app, db is the database
+from models import Todo, User # models rapresenting the tables in the database
+from functools import wraps # helper function to create decorators
+import jwt # decode jwt tokens to authenticate users
 
 # Auth
 
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if request.method == "OPTIONS":
-            return jsonify({}), 200
+def token_required(f): # decorator to check if the user is authenticated
+    @wraps(f) # preserve the metadata of the original function
+    def decorated(*args, **kwargs): # the function that will be called when the decorator is used
+        if request.method == "OPTIONS": # handle preflight requests
+            return jsonify({}), 200 # return an empty response with status code 200
 
-        token = None
-        auth_header = request.headers.get('Authorization')
+        token = None # inirialize token to None
+        auth_header = request.headers.get('Authorization') # get the Authorization header from the request
 
         if auth_header:
             try:
-                token = auth_header.split(" ")[1]
+                token = auth_header.split(" ")[1] # get the token from the header
             except IndexError:
                 return jsonify({'message': 'Invalid token format'}), 401
 
@@ -26,17 +26,17 @@ def token_required(f):
 
         try:
             data = jwt.decode(token, 'your-secret', algorithms=['HS256'])
-            current_user = User.query.get(data['user_id'])
-        except:
-            return jsonify({'message': 'Token is invalid'}), 401
+            current_user = User.query.get(data['user_id']) # get the user from the database
+        except Exception as e:
+            return jsonify({'message': 'Token is invalid', 'error' : str(e)}), 401 # return an error if the token is invalid
 
-        return f(current_user, *args, **kwargs)
+        return f(current_user, *args, **kwargs) # call the function with the user as argument
 
     return decorated
 
 @app.route("/auth/register", methods=["POST"])
 def register():
-    data = request.get_json()
+    data = request.get_json() # get the json data from the request
     
     if not data or not data.get('email') or not data.get('password'):
         return jsonify({'message': 'Invalid input'}), 400
@@ -85,7 +85,7 @@ def login():
     
 @app.route("/auth/logout", methods=["POST"])
 @token_required
-def logout(curent_user):
+def logout():
     return jsonify({"message": "Logged out successfully"}), 200
 
 # Routes for Todos

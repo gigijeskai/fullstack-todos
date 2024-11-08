@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
+import Logout from './logout';
 
 export const Navbar: React.FC = () => {
     const { isAuthenticated } = useSelector((state: RootState) => state.auth);
@@ -29,7 +30,7 @@ export const Navbar: React.FC = () => {
                     <Link to="/users" >Users</Link>
                 </li>
                 <li>
-                    <Link to="/logout" >Logout</Link>
+                    <Logout />
                 </li>
                 </>
             )}

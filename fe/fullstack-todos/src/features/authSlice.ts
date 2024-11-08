@@ -17,7 +17,7 @@ const loadAuthState = (): AuthState => {
     };
 };
 
-    const initialState: AuthState = loadAuthState();
+    const initialState: AuthState = loadAuthState(); // load initial state from localStorage
 
     export const login = createAsyncThunk(
         '/login',
@@ -44,8 +44,10 @@ const loadAuthState = (): AuthState => {
     export const logout = createAsyncThunk(
         '/logout',
         async () => {
+            const response = await axios.post(`${API_URL}/auth/logout`);
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+            return response.data;
         }
     );
 
@@ -92,13 +94,20 @@ const loadAuthState = (): AuthState => {
 
             // Logout cases
 
+            .addCase(logout.pending, (state) => {
+                state.status = 'loading';
+                state.error = null;
+            })
             .addCase(logout.fulfilled, (state) => {
+                state.status = 'idle';
                 state.user = null;
                 state.token = null;
-                state.status = 'idle';
                 state.isAuthenticated = false;
+            })
+            .addCase(logout.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message || 'Logout failed';
             });
-
         }
     });
 
