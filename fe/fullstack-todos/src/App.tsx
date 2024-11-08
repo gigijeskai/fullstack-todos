@@ -5,6 +5,7 @@ import { Login } from './components/login';
 import { Register } from './components/register';
 import { Todos } from './components/todos';
 import Navbar from './components/navbar';
+import Users from './components/users';
 
 // Protected Route Component
 interface PrivateRouteProps {
@@ -71,6 +72,16 @@ function App() {
             element={
               <PrivateRoute>
                 <Todos />
+              </PrivateRoute>
+            } 
+          />
+
+          {/* Protected Routes */}
+          <Route 
+            path="/users" 
+            element={
+              <PrivateRoute>
+                <Users />
               </PrivateRoute>
             } 
           />

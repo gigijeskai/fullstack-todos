@@ -39,8 +39,9 @@ try {
             {users.map((user: any) => (
                 <div key={user.id}>
                     <h3>{user.email}</h3>
-                    <button disabled={isLoading} onClick={() => 
-                        handleDeleteUser(user.id)}>Delete</button>
+                    <button disabled={isLoading} 
+                    onClick={() => handleDeleteUser(user.id)}
+                    >Delete</button>
                 </div>
             ))}
         </div>
