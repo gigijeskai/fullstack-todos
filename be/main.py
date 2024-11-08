@@ -82,6 +82,11 @@ def login():
             'email': user.email
         }
         }), 200
+    
+@app.route("/auth/logout", methods=["POST"])
+@token_required
+def logout(curent_user):
+    return jsonify({"message": "Logged out successfully"}), 200
 
 # Routes for Todos
 
