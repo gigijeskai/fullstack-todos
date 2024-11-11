@@ -12,7 +12,7 @@ const api = axios.create({
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
-        if (token) {
+        if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -23,12 +23,16 @@ api.interceptors.request.use(
 );
 
 // Add response interceptor
-api.interceptors.response.use(
+axios.interceptors.response.use(
     (response) => response,
     (error) => {
-        console.error('API Error:', error);
-        return Promise.reject(error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+      return Promise.reject(error);
     }
-);
+  );
 
 export default api;

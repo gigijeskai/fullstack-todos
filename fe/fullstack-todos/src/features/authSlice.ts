@@ -13,7 +13,7 @@ const loadAuthState = (): AuthState => {
         user: user ? JSON.parse(user) : null,
         status: 'idle',
         error: null,
-        isAuthenticated: false,
+        isAuthenticated: !!token,
     };
 };
 
@@ -27,6 +27,7 @@ const loadAuthState = (): AuthState => {
             // Save token and user in localStorage
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
+            axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
             return response.data;
         }
     );
@@ -37,24 +38,39 @@ const loadAuthState = (): AuthState => {
             const response = await axios.post(`${API_URL}/auth/register`, credentials);
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
+            axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
             return response.data;
         }
     );
 
     export const logout = createAsyncThunk(
         '/logout',
-        async () => {
-            const response = await axios.post(`${API_URL}/auth/logout`);
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            return response.data;
+        async (_, { rejectWithValue }) => {
+            try {
+                await axios.post(`${API_URL}/auth/logout`);
+                // Clear storage and headers even if the request fails
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                delete axios.defaults.headers.common['Authorization'];
+                return null;
+            } catch (error) {
+                // Still clear everything even on error
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                delete axios.defaults.headers.common['Authorization'];
+                return rejectWithValue(error);
+            }
         }
     );
 
     const authSlice = createSlice({
         name: 'auth',
         initialState,
-        reducers: {},
+        reducers: {
+            clearAuthError: (state) => {
+                state.error = null;
+        },
+    },
         extraReducers: (builder) => {
             builder
 
@@ -73,6 +89,7 @@ const loadAuthState = (): AuthState => {
             .addCase(login.rejected, (state, action) => {
                 state.status = 'failed';
                 state.error = action.error.message || 'Login failed';
+                state.isAuthenticated = false;
             })
 
             // Register cases
@@ -90,25 +107,30 @@ const loadAuthState = (): AuthState => {
             .addCase(register.rejected, (state, action) => {
                 state.status = 'failed';
                 state.error = action.error.message || 'Register failed';
+                state.isAuthenticated = false;
             })
 
             // Logout cases
 
             .addCase(logout.pending, (state) => {
                 state.status = 'loading';
-                state.error = null;
             })
             .addCase(logout.fulfilled, (state) => {
                 state.status = 'idle';
                 state.user = null;
                 state.token = null;
                 state.isAuthenticated = false;
+                state.error = null;
             })
             .addCase(logout.rejected, (state, action) => {
-                state.status = 'failed';
-                state.error = action.error.message || 'Logout failed';
+                state.status = 'idle';
+                state.user = null;
+                state.token = null;
+                state.isAuthenticated = false;
+                state.error = null;
             });
         }
     });
 
+    export const { clearAuthError } = authSlice.actions;
     export default authSlice.reducer;

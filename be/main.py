@@ -83,10 +83,13 @@ def login():
         }
         }), 200
     
-@app.route("/auth/logout", methods=["POST"])
+@app.route("/auth/logout", methods=["GET"])
 @token_required
-def logout():
-    return jsonify({"message": "Logged out successfully"}), 200
+def logout(current_user):
+    try:
+        return jsonify({"message": "Logged out successfully"}), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
 
 # Routes for Todos
 
