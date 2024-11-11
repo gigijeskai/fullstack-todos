@@ -83,19 +83,27 @@ def login():
         }
         }), 200
     
-@app.route("/auth/logout", methods=["GET"])
+@app.route("/auth/logout", methods=["GET", "POST", "OPTIONS"])
 @token_required
 def logout(current_user):
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+        
+    # Handle both GET and POST requests
     try:
+        # Add any logout logic here (like token invalidation if needed)
         return jsonify({"message": "Logged out successfully"}), 200
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 # Routes for Todos
 
-@app.route("/todos", methods=["GET"])
+@app.route("/todos", methods=["GET", "OPTIONS"])
 @token_required
 def get_todos(current_user):
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+        
     try:
         todos = Todo.query.filter_by(user_id=current_user.id).all()
         return jsonify([todo.to_json() for todo in todos])
@@ -122,20 +130,23 @@ def create_todos(current_user):
         db.session.rollback()
         return jsonify({"message": str(e)}), 500
         
-@app.route("/update_todos/<int:todo_id>", methods=["PATCH"])
+@app.route("/update_todos/<int:todo_id>", methods=["PATCH", "OPTIONS"])
 @token_required
 def update_todos(current_user, todo_id):
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+        
     try:
         todo = Todo.query.filter_by(id=todo_id, user_id=current_user.id).first()
         if not todo:
-            return jsonify({"error": "Todo not found"}), 404,
-   
+            return jsonify({"error": "Todo not found"}), 404
+
         data = request.get_json()
         if "title" in data:
             todo.title = data["title"]
         if "done" in data:
             todo.done = data["done"]
-    
+
         db.session.commit()
         return jsonify(todo.to_json()), 200
     except Exception as e:
@@ -186,6 +197,14 @@ def delete_user(current_user, user_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+    
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
     
 if __name__ == "__main__":
     app.run(debug=True)

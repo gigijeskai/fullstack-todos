@@ -2,6 +2,9 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { Todo, TodosState } from '../types/todo';
 import axios from '../utils/axios';
 
+axios.defaults.headers.common['Content-Type'] = 'application/json';
+
+
 export const fetchTodos = createAsyncThunk(
     'todos/fetchTodos',
     async (_, { rejectWithValue }) => {
@@ -30,7 +33,11 @@ export const updateTodo = createAsyncThunk(
     'todos/updateTodo',
     async ({ id, title, done }: { id: number; title: string; done: boolean }, { rejectWithValue }) => {
         try {
-            const response = await axios.patch(`/update_todos/${id}`, { title, done });
+            const token = localStorage.getItem('token');
+            const response = await axios.patch(`/update_todos/${id}`, { title, done }, 
+                { headers: { Authorization: `Bearer ${token}` ,
+                                'Content-Type': 'application/json',
+            } });
             return response.data;
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.message || 'Failed to update todo');
