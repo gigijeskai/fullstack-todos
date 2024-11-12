@@ -36,3 +36,7 @@ axios.interceptors.response.use(
   );
 
 export default api;
+
+// This utils it serves: centralized configutations without repeating code, and also interceptors to handle the token and redirect to login page when the token is invalid.
+// Automated token handling: when the token is invalid, the user is redirected to the login page.
+// The token is stored in the localStorage, and it is sent in the Authorization header of the requests.

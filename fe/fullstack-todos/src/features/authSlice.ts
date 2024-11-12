@@ -19,7 +19,7 @@ const loadAuthState = (): AuthState => {
 
     const initialState: AuthState = loadAuthState(); // load initial state from localStorage
 
-    export const login = createAsyncThunk(
+    export const login = createAsyncThunk( // createAsyncThunk is a function that takes an action type string and a payload creator callback function that should return a promise containing the response data.
         '/login',
         async (credentials: LoginCredentials) => {
             const response = await axios.post(`${API_URL}/auth/login`, credentials);
@@ -71,7 +71,7 @@ const loadAuthState = (): AuthState => {
                 state.error = null;
         },
     },
-        extraReducers: (builder) => {
+        extraReducers: (builder) => { // extraReducers is a callback function that receives a builder object that lets you define additional reducers outside of the createSlice call
             builder
 
             // Login cases

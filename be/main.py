@@ -25,7 +25,7 @@ def token_required(f): # decorator to check if the user is authenticated
             return jsonify({'message': 'Token is missing'}), 401
 
         try:
-            data = jwt.decode(token, 'your-secret', algorithms=['HS256'])
+            data = jwt.decode(token, 'your-secret', algorithms=['HS256']) # decode the token
             current_user = User.query.get(data['user_id']) # get the user from the database
         except Exception as e:
             return jsonify({'message': 'Token is invalid', 'error' : str(e)}), 401 # return an error if the token is invalid
@@ -63,7 +63,7 @@ def register():
     
 @app.route("/auth/login", methods=["POST"])
 def login():
-    data = request.get_json()
+    data = request.get_json() 
     
     if not data or not data.get('email') or not data.get('password'):
         return jsonify({'message': 'Invalid input'}), 400
@@ -118,16 +118,16 @@ def create_todos(current_user):
         return jsonify({"message": "Invalid input"}), 400
 
     try:
-        new_todo = Todo(
+        new_todo = Todo( # create a new todo object with the model in model.py
             title=data["title"],
             done=False,
             user_id=current_user.id
         )
-        db.session.add(new_todo)
-        db.session.commit()
+        db.session.add(new_todo) # add the new todo to the database
+        db.session.commit() # commit the transaction
         return jsonify(new_todo.to_json()), 201
     except Exception as e:
-        db.session.rollback()
+        db.session.rollback() # if an error occurs, rollback the transaction
         return jsonify({"message": str(e)}), 500
         
 @app.route("/update_todos/<int:todo_id>", methods=["PATCH", "OPTIONS"])

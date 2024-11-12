@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { Todo, TodosState } from '../types/todo';
+import { TodosState } from '../types/todo';
 import axios from '../utils/axios';
 
 axios.defaults.headers.common['Content-Type'] = 'application/json';
