@@ -1,19 +1,19 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS
-from flask_migrate import Migrate
-
-app = Flask(__name__)
-
-# Simple CORS configuration
-CORS(app, 
-     resources={r"/*": {"origins": "http://localhost:3000"}},
-     supports_credentials=True,
-     allow_headers=["Content-Type", "Authorization"],
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"])
-
-# Your database configuration
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///mydatabase.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+import os
+class Config:
+     SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key'
+     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///db.sqlite'
+     SQLALCHEMY_TRACK_MODIFICATIONS = False
+     
+class DevelopmentConfig(Config):
+     DEBUG = True
+     CORS_RESOURCES = {r"/api/*": {"origins": "HTTP://localhost:3000"}}
+     
+class ProductionConfig(Config):
+     DEBUG = False
+     CORS_RESOURCES = {r"/api/*": {"origins": "https://your-production-url.com"}} 
+     
+config = {
+     'development': DevelopmentConfig,
+     'production': ProductionConfig,
+     'default': DevelopmentConfig
+}

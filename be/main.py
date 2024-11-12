@@ -1,8 +1,23 @@
-from flask import request, jsonify # handle requests and responses json
-from config import app, db # app is the main flask app, db is the database
-from models import Todo, User # models rapresenting the tables in the database
-from functools import wraps # helper function to create decorators
-import jwt # decode jwt tokens to authenticate users
+import os
+from flask import Flask, send_from_directory, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+from flask_migrate import Migrate
+from config import config
+
+app = Flask(__name__, static_folder="../fe/build", static_url_path="/")
+app.config.from_object(config[os.environ.get('FLASK_ENV') or 'default'])
+
+# Configure CORS for development
+if app.config['DEBUG']:
+    CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+from models import User, Todo
+from functools import wraps
+import jwt
 
 # Auth
 
@@ -205,6 +220,15 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
+
+# Serve React App
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve(path):
+    if path != "" and os.path.exists(app.static_folder + "/" + path):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, "index.html")
     
 if __name__ == "__main__":
     app.run(debug=True)
