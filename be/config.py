@@ -1,19 +1,23 @@
 import os
+
 class Config:
-     SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key'
-     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///db.sqlite'
-     SQLALCHEMY_TRACK_MODIFICATIONS = False
-     
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///db.sqlite'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
 class DevelopmentConfig(Config):
-     DEBUG = True
-     CORS_RESOURCES = {r"/api/*": {"origins": "HTTP://localhost:3000"}}
-     
+    DEBUG = True
+    CORS_RESOURCES = {r"/api/*": {"origins": "http://localhost:3000"}}
+
 class ProductionConfig(Config):
-     DEBUG = False
-     CORS_RESOURCES = {r"/api/*": {"origins": "https://your-production-url.com"}} 
-     
+    DEBUG = False
+    # Update this to your frontend domain when deployed
+    CORS_RESOURCES = {r"/api/*": {"origins": ["https://your-frontend-domain.com"]}}
+    # Use PostgreSQL for production (optional but recommended)
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+
 config = {
-     'development': DevelopmentConfig,
-     'production': ProductionConfig,
-     'default': DevelopmentConfig
+    'development': DevelopmentConfig,
+    'production': ProductionConfig,
+    'default': ProductionConfig  # Changed default to Production
 }
