@@ -5,7 +5,7 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from config import config
 
-app = Flask(__name__, static_folder="../fe/build", static_url_path="/")
+app = Flask(__name__)
 app.config.from_object(config[os.environ.get('FLASK_ENV') or 'default'])
 
 # Configure CORS for development
@@ -13,10 +13,7 @@ if app.config['DEBUG']:
     CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
 else:
     CORS(app, resources={r"/api/*": {
-        "origins": [
-            "https://your-app-name.vercel.app",  # Replace with your Vercel domain
-            "http://localhost:3000"
-        ]
+        "origins": ["https://fullstack-todos-sigma.vercel.app"]
     }})
 
 db = SQLAlchemy(app)
@@ -241,6 +238,6 @@ def serve(path):
         return send_from_directory(app.static_folder, "index.html")
     
 if __name__ == "__main__":
-    app.run(debug=True, port=os.getenv('PORT', 5000))
+    app.run()
     
     
