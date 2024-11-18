@@ -11,6 +11,13 @@ app.config.from_object(config[os.environ.get('FLASK_ENV') or 'default'])
 # Configure CORS for development
 if app.config['DEBUG']:
     CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+else:
+    CORS(app, resources={r"/api/*": {
+        "origins": [
+            "https://your-app-name.vercel.app",  # Replace with your Vercel domain
+            "http://localhost:3000"
+        ]
+    }})
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -215,7 +222,10 @@ def delete_user(current_user, user_id):
     
 @app.after_request
 def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+    if app.config['DEBUG']:
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+    else:
+        response.headers.add('Access-Control-Allow-Origin', 'https://your-app-name.vercel.app')  # Replace with your Vercel domain
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH')
     response.headers.add('Access-Control-Allow-Credentials', 'true')

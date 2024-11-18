@@ -1,23 +1,23 @@
+# config.py
 import os
+from datetime import timedelta
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    CORS_RESOURCES = {r"/api/*": {"origins": "http://localhost:3000"}}
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///app.db'
 
 class ProductionConfig(Config):
     DEBUG = False
-    # Update this to your frontend domain when deployed
-    CORS_RESOURCES = {r"/api/*": {"origins": ["https://your-frontend-domain.com"]}}
-    # Use PostgreSQL for production (optional but recommended)
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
+        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace('postgres://', 'postgresql://', 1)
 
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
-    'default': ProductionConfig  # Changed default to Production
+    'default': DevelopmentConfig
 }
