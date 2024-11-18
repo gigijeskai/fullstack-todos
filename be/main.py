@@ -5,8 +5,7 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from config import config
 
-app = Flask(__name__)
-app.config.from_object(config[os.environ.get('FLASK_ENV') or 'default'])
+app = Flask(__name__, static_folder='static')
 
 # Configure CORS for development
 if app.config['DEBUG']:
@@ -52,6 +51,14 @@ def token_required(f): # decorator to check if the user is authenticated
         return f(current_user, *args, **kwargs) # call the function with the user as argument
 
     return decorated
+
+# Serve React App
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(app.static_folder + '/' + path):
+        return send_from_directory(app.static_folder, path)
+    return send_from_directory(app.static_folder, 'index.html')
 
 @app.route("/auth/register", methods=["POST"])
 def register():
@@ -238,6 +245,7 @@ def serve(path):
         return send_from_directory(app.static_folder, "index.html")
     
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
     
     
