@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_migrate import Migrate
 from config import config
+import sqlite3
 
 app = Flask(__name__)
 # Configure CORS for development
@@ -20,6 +21,11 @@ migrate = Migrate(app, db)
 from models import User, Todo
 from functools import wraps
 import jwt
+
+def get_db_connection():
+    conn = sqlite3.connect('todos.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
 # Auth
 
@@ -125,35 +131,22 @@ def logout(current_user):
 
 @app.route("/todos", methods=["GET", "OPTIONS"])
 @token_required
-def get_todos(current_user):
-    if request.method == "OPTIONS":
-        return jsonify({}), 200
-        
-    try:
-        todos = Todo.query.filter_by(user_id=current_user.id).all()
-        return jsonify([todo.to_json() for todo in todos])
-    except Exception as e:
-        return jsonify({'message': str(e)}), 500
+def get_todos():
+    conn = get_db_connection()
+    todos = conn.execute('SELECT * FROM todos').fetchall()
+    conn.close()
+    return jsonify([dict(todo) for todo in todos])
 
 @app.route("/create_todos", methods=["POST"])
 @token_required
-def create_todos(current_user):
-    data = request.get_json()
-    if not data or not data.get("title"):
-        return jsonify({"message": "Invalid input"}), 400
-
-    try:
-        new_todo = Todo( # create a new todo object with the model in model.py
-            title=data["title"],
-            done=False,
-            user_id=current_user.id
-        )
-        db.session.add(new_todo) # add the new todo to the database
-        db.session.commit() # commit the transaction
-        return jsonify(new_todo.to_json()), 201
-    except Exception as e:
-        db.session.rollback() # if an error occurs, rollback the transaction
-        return jsonify({"message": str(e)}), 500
+def create_todo():
+    todo_data = request.json
+    conn = get_db_connection()
+    conn.execute('INSERT INTO todos (text, completed) VALUES (?, ?)',
+                (todo_data['text'], todo_data['completed']))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Todo created successfully"})
         
 @app.route("/update_todos/<int:todo_id>", methods=["PATCH", "OPTIONS"])
 @token_required
@@ -180,20 +173,12 @@ def update_todos(current_user, todo_id):
 
 @app.route("/delete_todos/<int:todo_id>", methods=["DELETE"])
 @token_required
-def delete_todos(current_user, todo_id):
-    try:
-        todo = Todo.query.filter_by(id=todo_id, user_id=current_user.id).first()
-    
-        if not todo:
-            return (jsonify({"error": "Todo not found"}), 404,
-        )
-        
-        db.session.delete(todo)
-        db.session.commit()
-        return jsonify({"message": "Todo deleted successfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+def delete_todos(id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM todos WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Todo deleted successfully"})
     
 # Route for Users
 
@@ -244,7 +229,7 @@ def serve(path):
         return send_from_directory(app.static_folder, "index.html")
     
 if __name__ == "__main__":
-    app.run()
+    app.run(port=5000)
 
     
     
