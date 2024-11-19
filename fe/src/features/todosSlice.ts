@@ -1,9 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { TodosState } from '../types/todo';
 import axios from '../utils/axios';
+import { API_URL } from '../config/api';
 
 axios.defaults.headers.common['Content-Type'] = 'application/json';
-
 
 export const fetchTodos = createAsyncThunk(
     'todos/fetchTodos',

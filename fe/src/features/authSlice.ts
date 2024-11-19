@@ -1,8 +1,7 @@
 import {createSlice, createAsyncThunk} from '@reduxjs/toolkit';
 import axios from 'axios';
 import { AuthState, LoginCredentials, RegisterCredentials } from '../types/auth';
-
-const API_URL = 'http://localhost:5000';
+import { API_URL } from '../config/api';
 
 // Recover initial state from localStorage
 const loadAuthState = (): AuthState => {

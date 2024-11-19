@@ -8,13 +8,13 @@ import sqlite3
 
 app = Flask(__name__)
 # Configure CORS for development
-if app.config['DEBUG']:
-    CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
-else:
-    CORS(app, resources={r"/api/*": {
-        "origins": ["https://fullstack-todos-sigma.vercel.app"]
-    }})
+CORS(app, resources={
+    r"/*": {
+        "origins": "https://main.dc6ojrqc09hyc.amplifyapp.com"
+    }
+})
 
+DATABASE = 'todos.db'
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -94,7 +94,7 @@ def register():
     
 @app.route("/auth/login", methods=["POST"])
 def login():
-    data = request.get_json() 
+    data = request.json
     
     if not data or not data.get('email') or not data.get('password'):
         return jsonify({'message': 'Invalid input'}), 400
