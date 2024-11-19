@@ -5,8 +5,7 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from config import config
 
-app = Flask(__name__, static_folder='static')
-
+app = Flask(__name__)
 # Configure CORS for development
 if app.config['DEBUG']:
     CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
@@ -245,7 +244,7 @@ def serve(path):
         return send_from_directory(app.static_folder, "index.html")
     
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run()
 
     
     
