@@ -3,13 +3,17 @@ from flask import Flask, send_from_directory, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_migrate import Migrate
-from be.config import config
+from be.config import Config, ProductionConfig
 import jwt
 
 app = Flask(__name__, static_folder='../fe/build')
 
 env_config = os.getenv('FLASK_ENV', 'development')
-app.config.from_object(config[env_config])
+config_map = {
+    'development': Config,
+    'production': ProductionConfig
+}
+app.config.from_object(config_map[env_config])
 
 # Configure CORS
 CORS(app, resources={
