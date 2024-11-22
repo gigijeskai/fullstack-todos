@@ -3,7 +3,7 @@ from flask import Flask, send_from_directory, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_migrate import Migrate
-from config import config
+from be.config import config
 import sqlite3
 
 app = Flask(__name__)
