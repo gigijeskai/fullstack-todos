@@ -137,17 +137,10 @@ def get_todos(current_user):
 @token_required
 def create_todo(current_user):
     todo_data = request.json
-    
-    todo = Todo(
-        text=todo_data['text'], 
-        completed=todo_data.get('completed', False),
-        user_id=current_user.id
-    )
-    
-    db.session.add(todo)
+    new_todo = Todo(text=todo_data['text'], completed=todo_data['completed'], user_id=current_user.id)
+    db.session.add(new_todo)
     db.session.commit()
-    
-    return jsonify(todo.to_json()), 201
+    return jsonify(new_todo.to_json())
         
 @app.route("/update_todos/<int:todo_id>", methods=["PATCH"])
 @token_required
@@ -171,10 +164,10 @@ def delete_todos(current_user, todo_id):
     todo = Todo.query.filter_by(id=todo_id, user_id=current_user.id).first()
     if not todo:
         return jsonify({"error": "Todo not found"}), 404
-
+    
     db.session.delete(todo)
     db.session.commit()
-    return jsonify({"message": "Todo deleted successfully"}), 200
+    return jsonify({"message": "Todo deleted successfully"})
     
 @app.route("/users", methods=["GET"])
 @token_required
