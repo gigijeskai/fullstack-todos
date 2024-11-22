@@ -7,6 +7,10 @@ from config import config
 import sqlite3
 
 app = Flask(__name__)
+
+env_config = os.getenv('FLASK_ENV', 'development')
+app.config.from_object(config[env_config])
+
 # Configure CORS for development
 CORS(app, resources={
     r"/*": {
@@ -231,7 +235,7 @@ def serve(path):
         return send_from_directory(app.static_folder, "index.html")
     
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
 
     
     

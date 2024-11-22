@@ -1,5 +1,5 @@
 # models.py
-from be.app import db
+from app import db
 import jwt
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
