@@ -10,7 +10,9 @@ app = Flask(__name__)
 # Configure CORS for development
 CORS(app, resources={
     r"/*": {
-        "origins": "https://main.dc6ojrqc09hyc.amplifyapp.com"
+        "origins": ["https://main.dc6ojrqc09hyc.amplifyapp.com"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        "allow_headers": ["Content-Type", "Authorization"]
     }
 })
 
@@ -229,7 +231,7 @@ def serve(path):
         return send_from_directory(app.static_folder, "index.html")
     
 if __name__ == "__main__":
-    app.run(port=5000)
+    app.run()
 
     
     
