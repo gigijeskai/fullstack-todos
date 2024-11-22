@@ -4,49 +4,43 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_migrate import Migrate
 from be.config import config
-import sqlite3
+import jwt
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../fe/build')
 
 env_config = os.getenv('FLASK_ENV', 'development')
 app.config.from_object(config[env_config])
 
-# Configure CORS for development
+# Configure CORS
 CORS(app, resources={
     r"/*": {
-        "origins": ["https://main.dc6ojrqc09hyc.amplifyapp.com"],
+        "origins": [
+            "https://main.dc6ojrqc09hyc.amplifyapp.com", 
+            "http://localhost:3000"
+        ],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
 })
 
-DATABASE = 'todos.db'
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 from models import User, Todo
 from functools import wraps
-import jwt
 
-def get_db_connection():
-    conn = sqlite3.connect('todos.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if request.method == "OPTIONS":
+            return jsonify({}), 200
 
-# Auth
-
-def token_required(f): # decorator to check if the user is authenticated
-    @wraps(f) # preserve the metadata of the original function
-    def decorated(*args, **kwargs): # the function that will be called when the decorator is used
-        if request.method == "OPTIONS": # handle preflight requests
-            return jsonify({}), 200 # return an empty response with status code 200
-
-        token = None # inirialize token to None
-        auth_header = request.headers.get('Authorization') # get the Authorization header from the request
+        token = None
+        auth_header = request.headers.get('Authorization')
 
         if auth_header:
             try:
-                token = auth_header.split(" ")[1] # get the token from the header
+                token = auth_header.split(" ")[1]
             except IndexError:
                 return jsonify({'message': 'Invalid token format'}), 401
 
@@ -54,26 +48,27 @@ def token_required(f): # decorator to check if the user is authenticated
             return jsonify({'message': 'Token is missing'}), 401
 
         try:
-            data = jwt.decode(token, 'your-secret', algorithms=['HS256']) # decode the token
-            current_user = User.query.get(data['user_id']) # get the user from the database
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+            current_user = User.query.get(data['user_id'])
         except Exception as e:
-            return jsonify({'message': 'Token is invalid', 'error' : str(e)}), 401 # return an error if the token is invalid
+            return jsonify({'message': 'Token is invalid', 'error': str(e)}), 401
 
-        return f(current_user, *args, **kwargs) # call the function with the user as argument
+        return f(current_user, *args, **kwargs)
 
     return decorated
 
-# Serve React App
+# Single route for serving React app
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
-    if path != "" and os.path.exists(app.static_folder + '/' + path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
     return send_from_directory(app.static_folder, 'index.html')
 
+# Authentication routes
 @app.route("/auth/register", methods=["POST"])
 def register():
-    data = request.get_json() # get the json data from the request
+    data = request.get_json()
     
     if not data or not data.get('email') or not data.get('password'):
         return jsonify({'message': 'Invalid input'}), 400
@@ -81,8 +76,7 @@ def register():
     if User.query.filter_by(email=data['email']).first():
         return jsonify({'message': 'User already exists'}), 400
     
-    user = User()
-    user.email = data['email']
+    user = User(email=data['email'])
     user.set_password(data['password'])
     
     db.session.add(user)
@@ -96,7 +90,7 @@ def register():
             'id': user.id,
             'email': user.email
         }
-        }), 201
+    }), 201
     
 @app.route("/auth/login", methods=["POST"])
 def login():
@@ -118,7 +112,7 @@ def login():
             'id': user.id,
             'email': user.email
         }
-        }), 200
+    }), 200
     
 @app.route("/auth/logout", methods=["GET", "POST", "OPTIONS"])
 @token_required
@@ -126,116 +120,75 @@ def logout(current_user):
     if request.method == "OPTIONS":
         return jsonify({}), 200
         
-    # Handle both GET and POST requests
-    try:
-        # Add any logout logic here (like token invalidation if needed)
-        return jsonify({"message": "Logged out successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify({"message": "Logged out successfully"}), 200
 
-# Routes for Todos
-
-@app.route("/todos", methods=["GET", "OPTIONS"])
+# Todos routes (using SQLAlchemy)
+@app.route("/todos", methods=["GET"])
 @token_required
-def get_todos():
-    conn = get_db_connection()
-    todos = conn.execute('SELECT * FROM todos').fetchall()
-    conn.close()
-    return jsonify([dict(todo) for todo in todos])
+def get_todos(current_user):
+    todos = Todo.query.filter_by(user_id=current_user.id).all()
+    return jsonify([todo.to_json() for todo in todos])
 
 @app.route("/create_todos", methods=["POST"])
 @token_required
-def create_todo():
+def create_todo(current_user):
     todo_data = request.json
-    conn = get_db_connection()
-    conn.execute('INSERT INTO todos (text, completed) VALUES (?, ?)',
-                (todo_data['text'], todo_data['completed']))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Todo created successfully"})
+    
+    todo = Todo(
+        text=todo_data['text'], 
+        completed=todo_data.get('completed', False),
+        user_id=current_user.id
+    )
+    
+    db.session.add(todo)
+    db.session.commit()
+    
+    return jsonify(todo.to_json()), 201
         
-@app.route("/update_todos/<int:todo_id>", methods=["PATCH", "OPTIONS"])
+@app.route("/update_todos/<int:todo_id>", methods=["PATCH"])
 @token_required
 def update_todos(current_user, todo_id):
-    if request.method == "OPTIONS":
-        return jsonify({}), 200
-        
-    try:
-        todo = Todo.query.filter_by(id=todo_id, user_id=current_user.id).first()
-        if not todo:
-            return jsonify({"error": "Todo not found"}), 404
+    todo = Todo.query.filter_by(id=todo_id, user_id=current_user.id).first()
+    if not todo:
+        return jsonify({"error": "Todo not found"}), 404
 
-        data = request.get_json()
-        if "title" in data:
-            todo.title = data["title"]
-        if "done" in data:
-            todo.done = data["done"]
+    data = request.get_json()
+    if "text" in data:
+        todo.text = data["text"]
+    if "completed" in data:
+        todo.completed = data["completed"]
 
-        db.session.commit()
-        return jsonify(todo.to_json()), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 400
+    db.session.commit()
+    return jsonify(todo.to_json()), 200
 
 @app.route("/delete_todos/<int:todo_id>", methods=["DELETE"])
 @token_required
-def delete_todos(id):
-    conn = get_db_connection()
-    conn.execute('DELETE FROM todos WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Todo deleted successfully"})
-    
-# Route for Users
+def delete_todos(current_user, todo_id):
+    todo = Todo.query.filter_by(id=todo_id, user_id=current_user.id).first()
+    if not todo:
+        return jsonify({"error": "Todo not found"}), 404
 
+    db.session.delete(todo)
+    db.session.commit()
+    return jsonify({"message": "Todo deleted successfully"}), 200
+    
 @app.route("/users", methods=["GET"])
 @token_required
 def get_users(current_user):
-    try:
-        users = User.query.all()
-        return jsonify([user.to_json() for user in users])
-    except Exception as e:
-        return jsonify({'message': str(e)}), 500
+    users = User.query.all()
+    return jsonify([user.to_json() for user in users])
     
 @app.route("/delete_user/<int:user_id>", methods=["DELETE"])
 @token_required
 def delete_user(current_user, user_id):
-    try:
-        user = User.query.filter_by(id=user_id ).first()
+    user = User.query.filter_by(id=user_id).first()
     
-        if not user:
-            return (jsonify({"error": "User not found"}), 404,
-        )
-        
-        db.session.delete(user)
-        db.session.commit()
-        return jsonify({"message": "User deleted successfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+    if not user:
+        return jsonify({"error": "User not found"}), 404
     
-@app.after_request
-def after_request(response):
-    if app.config['DEBUG']:
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
-    else:
-        response.headers.add('Access-Control-Allow-Origin', 'https://your-app-name.vercel.app')  # Replace with your Vercel domain
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    return response
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({"message": "User deleted successfully"}), 200
 
-# Serve React App
-@app.route("/", defaults={"path": ""})
-@app.route("/<path:path>")
-def serve(path):
-    if path != "" and os.path.exists(app.static_folder + "/" + path):
-        return send_from_directory(app.static_folder, path)
-    else:
-        return send_from_directory(app.static_folder, "index.html")
-    
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
-
-    
-    
